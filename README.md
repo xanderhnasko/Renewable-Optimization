@@ -1,4 +1,4 @@
-# Renewable-Grid-Optimization
+# Renewable-Optimization
 
 
 **Goal**
