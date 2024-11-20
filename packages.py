@@ -10,6 +10,6 @@ import scipy.stats as stats
 import os
 from scipy.stats import shapiro
 from scipy.stats import norm
-from sklearn.preprocessing import PowerTransformer  
+  
 
 
