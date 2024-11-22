@@ -7,13 +7,20 @@ def analyze_data():
     df = pd.read_pickle("data.pkl") 
     column = df["wind_speed"]   
     print(column.describe())
-    print(column.head())
+    print(df.head())
 
     plt.hist(column, bins=20, color='c', edgecolor='black')   
     plt.title(f'Histogram of Wind Speed, mu={column.mean():.2f}, sigma={column.std():.2f}')    
     plt.xlabel('Wind Speed (m/s)')      
     plt.ylabel('Frequency') 
     plt.show()
+
+    print(df["site_id"].describe()) 
+    print(df["site_id"].nunique())  
+
+
+
+    
 
 
 def main():

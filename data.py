@@ -10,5 +10,9 @@ def get_data():
     content = response.content.decode('utf-8')  
 
     raw = pd.read_csv(StringIO(content))  
-    df = raw[["site_id", "longitude", "latitude", "power_curve", "wind_speed", "capacity_factor", "full_timeseries_path"]] 
+    raw["step"] = raw["full_timeseries_path"].str.replace(r".*/|\.nc", "", regex = True).astype(int)  
+    df = raw[["site_id", "longitude", "latitude", "power_curve", "wind_speed", "capacity_factor", "full_timeseries_path", "step"]] 
     df.to_pickle("data.pkl")    
+
+if __name__ == "__main__":  
+    get_data()  
