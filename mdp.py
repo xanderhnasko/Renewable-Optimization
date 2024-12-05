@@ -17,7 +17,7 @@ def get_data():
     for region, group in grouped:
         print(f"region: {region}")
         print(group)
-
+    
 
     # plt.hist(column, bins=20, color='c', edgecolor='black')   
     # plt.title(f'Histogram of Wind Speed, mu={column.mean():.2f}, sigma={column.std():.2f}')    
