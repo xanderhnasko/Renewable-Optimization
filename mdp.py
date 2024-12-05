@@ -10,6 +10,9 @@ def get_data():
     df["prefix"] = df["full_timeseries_path"].str.split("/", expand=True)[0]  
     print(df)  
 
+    # JLEE - This just groups all sites by 1x1 degree squares, and outputs teh wind speed at each
+    # But in this case, we might have to have some notion of location in our MDP
+    # or just run the MDP on each location 
     df["lat_bin"] = df["latitude"]//1
     df["long_bin"] = df["longitude"]//1
     df["region_id"] = df["lat_bin"].astype(str) + "/" + df["long_bin"].astype(str)
@@ -19,11 +22,14 @@ def get_data():
         print(group)
     
 
-    # plt.hist(column, bins=20, color='c', edgecolor='black')   
-    # plt.title(f'Histogram of Wind Speed, mu={column.mean():.2f}, sigma={column.std():.2f}')    
-    # plt.xlabel('Wind Speed (m/s)')      
-    # plt.ylabel('Frequency') 
-    # plt.show()
+
+    # JLEE - this is the average wind speed (and variance) across all locations in the US. We can use this alone if need be,
+    # but it doesn't make much practical sense to compare wind speeds that are far away from eachother. Would be really easy to make the MDP tho
+    plt.hist(column, bins=20, color='c', edgecolor='black')   
+    plt.title(f'Histogram of Wind Speed, mu={column.mean():.2f}, sigma={column.std():.2f}')    
+    plt.xlabel('Wind Speed (m/s)')      
+    plt.ylabel('Frequency') 
+    plt.show()
                 
   
 
