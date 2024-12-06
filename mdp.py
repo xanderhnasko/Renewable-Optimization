@@ -34,7 +34,7 @@ def simulate_initial_wind_speed(n, mu_w=7.58, sigma_w=1.02):
                   
 # ACTION FUNCTIONS
 
-def apply_action(row, action, delta=0.01):
+def apply_action(row, action, delta=0.025):
     # delta is how much we increase or decrease the proportion of energy met by fossil fuels
     phi = row[0]
     if action == 'increase':
@@ -62,20 +62,33 @@ def full_transition(state, action, mu_w, sigma_w, mu_d, sigma_d, alpha=0.1, t=1)
     return (new_phi, new_wind_speed, new_power_output, new_demand)  
 
 # REWARD FUNCTION, NEED TO FIX
-def calculate_reward(state, new_state):
+def calculate_reward(state, action):
     phi, wind_speed, power_output, demand = state[0], state[1], state[2], state[3]
-    new_phi, new_wind_speed, new_power_output, new_demand = new_state[0], new_state[1], new_state[2], new_state[3]
     
-    delta_phi = new_phi - phi
-    total_energy_supply = new_power_output + new_phi * new_demand
-    
-    if total_energy_supply >= new_demand:
-        return 10 * (1 - delta_phi)
+   
+    total_energy_supply = power_output + phi * demand
+    reward = 0
+
+    if total_energy_supply < demand:
+        reward += -100
     else:
-        return -50 + 10 * (-delta_phi)
+        reward += 25 * (1 - phi) - 5
+
+    # reward stability
+    if action == "no_change":
+        reward += 1
+    return reward
+
+def descritize_state(state):
+    phi, wind_speed, power_output, demand = state
+    wind_bin = wind_speed//1
+    power_bin = power_output//1
+    demand_bin = demand//10
+    return (phi, wind_bin, power_bin, demand_bin)   
 
 # Using epsilon greedy policy exploration to balance exploration and exploitation so agent doesn't get stuck in sub-optimal action plans
-def e_greedy_policy(Q, state, epsilon): 
+def e_greedy_policy(Q, state, epsilon):
+    state = descritize_state(state)  
     if random.uniform(0, 1) < epsilon:
         return random.choice(['increase', 'decrease', 'no_change']) 
     return max(Q[state], key=Q[state].get)   
@@ -87,7 +100,7 @@ def q_learning(df, Q, num_episodes, step_horizon, mu_d, sigma_d, alpha, gamma, e
     for episode in range(num_episodes):
         
         curr_row = df.sample().iloc[0]
-        state = curr_row["state"]
+        state = descritize_state(curr_row["state"])
         x = []
         y = []
         for step in range(step_horizon):
@@ -95,26 +108,36 @@ def q_learning(df, Q, num_episodes, step_horizon, mu_d, sigma_d, alpha, gamma, e
             new_state = full_transition(state, action, mu_w = mu_w
                                         , sigma_w = sigma_w, mu_d = mu_d, 
                                         sigma_d = sigma_d, alpha=0.1, t=1)
-            reward = calculate_reward(state, new_state) 
+            if new_state[0] == 1 and action == 'increase':
+                action = 'no_change'    
+            reward = calculate_reward(new_state, action) 
+            new_state = descritize_state(new_state) 
 
             best_next_action = max(Q[new_state], key=Q[new_state].get)
             Q[state][action] += alpha * (reward + gamma * Q[new_state][best_next_action] - Q[state][action])
 
-            x.append(step)
-            y.append(state[0])
+ 
+            x.append(step)  
+            y.append(state[0])  
             state = new_state
-            if step % 10 == 0:
+            if step % 99 == 0:
                 print(f"Episode: {episode}/{num_episodes}, Step: {step}/{step_horizon}, State: {state}, Action: {action}, Reward: {reward}")
-        plt.plot(x, y)
-        if episode % 100 == 0:
+        plt.plot(x, y, color = 'blue', alpha = 0.01)
+        
+        if episode % 1000 == 0:
             print(f"Episode: {episode}/{num_episodes}, Step: {step}/{step_horizon}, State: {state}, Action: {action}, Reward: {reward}")
 
+    #sns.kdeplot(x = x_data, y = y_data, cmap = "Blues", fill = True)    
     plt.xlabel("Step")  
     plt.ylabel("Proportion of Energy Met by Fossil Fuels")
     plt.show()
     return Q
 
-def visualize_policy(optimal_policy):
+
+def visualize_Q(Q):
+   fixed_demand = 10.0
+   
+
    pass
 def main():
     # Load data
@@ -136,7 +159,7 @@ def main():
 
     # NEEDS TO BE UPDATED:
     # Luis/Jlee, ideally we start at 100% Fossil Fuels and work down until we reach the optimal balance
-    df['phi'] = 0.7  # Example: 70% of energy demand initially met by fossil fuels
+    df['phi'] = 0.5  # Example: 50% of energy demand initially met by fossil fuels
     mu_d = 100
     sigma_d = 10
     df['demand'] =  100 
@@ -149,20 +172,21 @@ def main():
     actions = ['increase', 'decrease', 'no_change']
 
     """Q-lEARNING SECTION"""   
-    # Initialize Q table
-    Q = defaultdict(lambda: {action: 0.0 for action in actions})
+    # Initialize Q table with random posiitve rewards to encourage exploration
+    Q = defaultdict(lambda: {action: random.uniform(0,1) for action in actions})
 
     # Parameters for Q-learning
     alpha = 0.1  # Learning rate
     gamma = 0.9  # Discount factor
-    epsilon = 0.1  # Exploration probability
-    episodes = 500  # Number of episodes
+    epsilon = 0.3 # Exploration probability
+    episodes = 1000  # Number of episodes
     step_horizon = 100  # Number of steps per episode
 
     
     Q = q_learning(df, Q, episodes, step_horizon=step_horizon, mu_d=mu_d, sigma_d=sigma_d, alpha=alpha, gamma=gamma, epsilon=epsilon) 
     optimal_policy = {state: max(actions, key = actions.get) for state, actions in Q.items()}   
-    print(optimal_policy)       
+    #print(optimal_policy) 
+    print(Q)        
 
 
 if __name__ == "__main__":
