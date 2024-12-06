@@ -14,4 +14,5 @@ import random
 from collections import defaultdict
 import seaborn as sns
 from matplotlib.colors import ListedColormap    
-
+from mpl_toolkits.mplot3d import Axes3D 
+from pandas.plotting import parallel_coordinates    
