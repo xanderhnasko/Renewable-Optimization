@@ -18,14 +18,14 @@ def calculate_power_output(wind_speed, cp = CP, rho=1.225, R=130.5):
 def wind_speed_transition(current_wind_speed, mu_w, sigma_w, alpha=0.1, t=1):
     lambda_ = np.exp(-alpha * t) 
     mu_w_prime = lambda_ * current_wind_speed + (1 - lambda_) * mu_w
-    return np.random.normal(mu_w_prime, sigma_w)
+    return max(np.random.normal(mu_w_prime, sigma_w), 0)
 
 # this is placeholder code for now 
 # we also need something for mu_d, sigma_d
 def energy_demand_transition(current_demand, mu_d, sigma_d, alpha=0.1, t=1):
     lambda_ = np.exp(-alpha * t)
     mu_d_prime = lambda_ * current_demand + (1 - lambda_) * mu_d
-    return np.random.normal(mu_d_prime, sigma_d)
+    return max(np.random.normal(mu_d_prime, sigma_d), 0)
 
 # TBU Fix this, JLEE - where do we use this? is it necessary?
 def simulate_initial_wind_speed(n, mu_w=7.58, sigma_w=1.02):
@@ -46,7 +46,7 @@ def apply_action(row, action, delta=0.025):
 
 def full_transition(state, action, mu_w, sigma_w, mu_d, sigma_d, alpha=0.1, t=1):
     """Compute the full transition probability and update the state."""
-    current_wind_speed, current_demand = state[1], state[3]
+    current_wind_speed, current_demand = state[1], state[2]
     
     # Transition wind speed and demand
     new_wind_speed = wind_speed_transition(current_wind_speed, mu_w, sigma_w, alpha, t)
@@ -55,16 +55,13 @@ def full_transition(state, action, mu_w, sigma_w, mu_d, sigma_d, alpha=0.1, t=1)
     # Update phi based on action
     new_phi = apply_action(state, action)
     
-    # Calculate new power output
-    new_power_output = calculate_power_output(new_wind_speed)
-    
     # Return new state
-    return (new_phi, new_wind_speed, new_power_output, new_demand)  
+    return (new_phi, new_wind_speed, new_demand)  
 
 # REWARD FUNCTION, NEED TO FIX
 def calculate_reward(state, action):
-    phi, wind_speed, power_output, demand = state[0], state[1], state[2], state[3]
-    
+    phi, wind_speed, demand = state[0], state[1], state[2]
+    power_output = calculate_power_output(wind_speed)   
    
     total_energy_supply = power_output + phi * demand
     reward = 0
@@ -80,11 +77,12 @@ def calculate_reward(state, action):
     return reward
 
 def descritize_state(state):
-    phi, wind_speed, power_output, demand = state
+    phi, wind_speed, demand = state
     wind_bin = wind_speed//1
-    power_bin = power_output//1
-    demand_bin = demand//10
-    return (phi, wind_bin, power_bin, demand_bin)   
+
+    bins = [0, 25, 50, 75, 100, 125, 150, 200]
+    demand_bin = np.digitize(demand, bins)
+    return (phi, wind_bin, demand_bin)   
 
 # Using epsilon greedy policy exploration to balance exploration and exploitation so agent doesn't get stuck in sub-optimal action plans
 def e_greedy_policy(Q, state, epsilon):
@@ -133,12 +131,92 @@ def q_learning(df, Q, num_episodes, step_horizon, mu_d, sigma_d, alpha, gamma, e
     plt.show()
     return Q
 
+def visualize_optimal_ws_d(policy_matrix): 
+    action_map = {"decrease": 0, "no_change": 1, "increase": 2} 
+    
+    data = [(d, ws, action_map[action]) for (phi, ws, d), action in policy_matrix.items()]  
+    if not data:
+        print("No data to visualize")
+        return
+    
+    ds = sorted(list(set([row[0] for row in data])))  
+    wind_speeds = sorted(list(set([row[1] for row in data])))   
+
+    d_index = {d: i for i, d in enumerate(ds)}  
+    wind_speed_index = {ws: i for i, ws in enumerate(wind_speeds)}  
+
+    pm = np.zeros((len(ds), len(wind_speeds))) 
+
+    for (phi, ws, action) in data:  
+        i = d_index[phi]
+        j = wind_speed_index[ws]
+        pm[i, j] = action   
+
+    cmap = ListedColormap(['green', 'white', 'red']) 
+  
+    sns.heatmap(pm, xticklabels=wind_speeds, yticklabels=ds, cmap = cmap , cbar=False) 
+    plt.title("Optimal Policy for Energy Demand and Wind Speed")    
+    plt.xlabel("Wind Speed")    
+    plt.ylabel("Energy Demand") 
+    plt.show()
+
+def visualize_optimal_phi_ws(policy_matrix):    
+    action_map = {"decrease": 0, "no_change": 1, "increase": 2} 
+    
+    data = [(phi, ws, action_map[action]) for (phi, ws, d), action in policy_matrix.items()]  
+    if not data:
+        print("No data to visualize")
+        return
+    
+    phis = sorted(list(set([row[0] for row in data])))  
+    wind_speeds = sorted(list(set([row[1] for row in data])))   
+
+    phi_index = {phi: i for i, phi in enumerate(phis)}  
+    wind_speed_index = {ws: i for i, ws in enumerate(wind_speeds)}  
+
+    pm = np.zeros((len(phis), len(wind_speeds))) 
+
+    for (phi, ws, action) in data:  
+        i = phi_index[phi]
+        j = wind_speed_index[ws]
+        pm[i, j] = action   
+
+    cmap = ListedColormap(['green', 'white', 'red']) 
+  
+    sns.heatmap(pm, xticklabels=wind_speeds, yticklabels=phis, cmap = cmap , cbar=False)   
+    plt.title("Optimal Policy for Proportion of Energy Met by Fossil Fuels")
+    plt.xlabel("Wind Speed")    
+    plt.ylabel("Proportion of Energy Met by Fossil Fuels")  
+    plt.show()
 
 def visualize_Q(Q):
-   fixed_demand = 10.0
-   
+    selected_action = "no_change"
 
-   pass
+    data =[]
+    for (phi, ws, d) in Q.keys():
+        #if d == 2:   
+        value = Q[(phi, ws, d)][selected_action] 
+        data.append((phi, ws, value))
+
+    phis = sorted(list(set([row[0] for row in data]))) 
+    wind_speeds = sorted(list(set([row[1] for row in data])))
+
+    phi_index = {phi: i for i, phi in enumerate(phis)}  
+    wind_speed_index = {ws: i for i, ws in enumerate(wind_speeds)}  
+
+    Q_matrix = np.zeros((len(phis), len(wind_speeds))) 
+
+    for (phi, ws, q_val) in data:
+        i = phi_index[phi]
+        j = wind_speed_index[ws]
+        Q_matrix[i, j] = q_val
+    
+    sns.heatmap(Q_matrix, xticklabels=wind_speeds, yticklabels=phis, vmin = -400, vmax = 20)   
+    plt.xlabel("Wind Speed")    
+    plt.ylabel("Proportion of Energy Met by Fossil Fuels")  
+    plt.title(f"Q-values for [{selected_action}] action") 
+    plt.show()
+
 def main():
     # Load data
     df = get_data()
@@ -165,7 +243,7 @@ def main():
     df['demand'] =  100 
 
     # constructing state space
-    df['state'] = df.apply(lambda row: (row['phi'], row['wind_speed'], row['power_output'], row['demand']), axis=1)
+    df['state'] = df.apply(lambda row: (row['phi'], row['wind_speed'], row['demand']), axis=1)
     print(df)
     
     # action space (increase, decrease, no_change in fossil fuel proportion)
@@ -185,9 +263,10 @@ def main():
     
     Q = q_learning(df, Q, episodes, step_horizon=step_horizon, mu_d=mu_d, sigma_d=sigma_d, alpha=alpha, gamma=gamma, epsilon=epsilon) 
     optimal_policy = {state: max(actions, key = actions.get) for state, actions in Q.items()}   
-    #print(optimal_policy) 
-    print(Q)        
-
+    print(optimal_policy) 
+    visualize_Q(Q)  
+    visualize_optimal_phi_ws(optimal_policy)    
+    #visualize_optimal_ws_d(optimal_policy)
 
 if __name__ == "__main__":
     main()
