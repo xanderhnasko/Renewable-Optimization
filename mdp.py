@@ -88,7 +88,8 @@ def q_learning(df, Q, num_episodes, step_horizon, mu_d, sigma_d, alpha, gamma, e
         
         curr_row = df.sample().iloc[0]
         state = curr_row["state"]
-
+        x = []
+        y = []
         for step in range(step_horizon):
             action = e_greedy_policy(Q, state, epsilon)
             new_state = full_transition(state, action, mu_w = mu_w
@@ -99,17 +100,22 @@ def q_learning(df, Q, num_episodes, step_horizon, mu_d, sigma_d, alpha, gamma, e
             best_next_action = max(Q[new_state], key=Q[new_state].get)
             Q[state][action] += alpha * (reward + gamma * Q[new_state][best_next_action] - Q[state][action])
 
+            x.append(step)
+            y.append(state[0])
             state = new_state
             if step % 10 == 0:
                 print(f"Episode: {episode}/{num_episodes}, Step: {step}/{step_horizon}, State: {state}, Action: {action}, Reward: {reward}")
+        plt.plot(x, y)
         if episode % 100 == 0:
             print(f"Episode: {episode}/{num_episodes}, Step: {step}/{step_horizon}, State: {state}, Action: {action}, Reward: {reward}")
+
+    plt.xlabel("Step")  
+    plt.ylabel("Proportion of Energy Met by Fossil Fuels")
+    plt.show()
     return Q
 
 def visualize_policy(optimal_policy):
-    pass
-
-
+   pass
 def main():
     # Load data
     df = get_data()
@@ -150,13 +156,13 @@ def main():
     alpha = 0.1  # Learning rate
     gamma = 0.9  # Discount factor
     epsilon = 0.1  # Exploration probability
-    episodes = 5000  # Number of episodes
+    episodes = 500  # Number of episodes
     step_horizon = 100  # Number of steps per episode
 
     
     Q = q_learning(df, Q, episodes, step_horizon=step_horizon, mu_d=mu_d, sigma_d=sigma_d, alpha=alpha, gamma=gamma, epsilon=epsilon) 
     optimal_policy = {state: max(actions, key = actions.get) for state, actions in Q.items()}   
-    print(optimal_policy)
+    print(optimal_policy)       
 
 
 if __name__ == "__main__":
