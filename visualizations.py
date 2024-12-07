@@ -1,35 +1,6 @@
 from packages import *
 
 
-def ws_vs_d_heatmap(policy_matrix): 
-    action_map = {"decrease": 0, "no_change": 1, "increase": 2} 
-    
-    data = [(d, ws, action_map[action]) for (phi, ws, d), action in policy_matrix.items()]  
-    if not data:
-        print("No data to visualize")
-        return
-    
-    ds = sorted(list(set([row[0] for row in data])))  
-    wind_speeds = sorted(list(set([row[1] for row in data])))   
-
-    d_index = {d: i for i, d in enumerate(ds)}  
-    wind_speed_index = {ws: i for i, ws in enumerate(wind_speeds)}  
-
-    pm = np.zeros((len(ds), len(wind_speeds))) 
-
-    for (phi, ws, action) in data:  
-        i = d_index[phi]
-        j = wind_speed_index[ws]
-        pm[i, j] = action   
-
-    cmap = ListedColormap(['green', 'white', 'red']) 
-  
-    sns.heatmap(pm, xticklabels=wind_speeds, yticklabels=ds, cmap = cmap , cbar=False) 
-    plt.title("Optimal Policy for Energy Demand and Wind Speed")    
-    plt.xlabel("Wind Speed")    
-    plt.ylabel("Energy Demand") 
-    plt.show()
-
 def phi_vs_ws_heatmap(policy_matrix):    
     action_map = {"decrease": 0, "no_change": 1, "increase": 2} 
     
@@ -51,20 +22,20 @@ def phi_vs_ws_heatmap(policy_matrix):
         j = wind_speed_index[ws]
         pm[i, j] = action   
 
-    cmap = ListedColormap(['green', 'white', 'red']) 
+    cmap = ListedColormap(['green', 'yellow', 'red']) 
   
     sns.heatmap(pm, xticklabels=wind_speeds, yticklabels=phis, cmap = cmap , cbar=False)   
     plt.title("Optimal Policy for Proportion of Energy Met by Fossil Fuels")
     plt.xlabel("Wind Speed")    
     plt.ylabel("Proportion of Energy Met by Fossil Fuels")  
+    plt.legend(handles=[Patch(facecolor='green', label='Increase Renewables'), Patch(facecolor='yellow', label='No Change'), Patch(facecolor='red', label='Decrease Renewables')], loc='upper left')
     plt.show()
 
 def Q_heatmap(Q):
-    selected_action = "no_change"
+    selected_action = "increase"
 
     data =[]
     for (phi, ws, d) in Q.keys():
-        #if d == 2:   
         value = Q[(phi, ws, d)][selected_action] 
         data.append((phi, ws, value))
 
@@ -81,10 +52,10 @@ def Q_heatmap(Q):
         j = wind_speed_index[ws]
         Q_matrix[i, j] = q_val
     
-    sns.heatmap(Q_matrix, xticklabels=wind_speeds, yticklabels=phis, vmax = 100, vmin = -200, cmap = "coolwarm_r", cbar_kws={'label': 'Q-value'})   
+    sns.heatmap(Q_matrix, xticklabels=wind_speeds, yticklabels=phis, vmax = 100, vmin = -50, cmap = "coolwarm_r", cbar_kws={'label': 'Q-value'})   
     plt.xlabel("Wind Speed")    
     plt.ylabel("Proportion of Energy Met by Fossil Fuels")  
-    plt.title(f"Q-values for [{selected_action}] action") 
+    plt.title(f"Q-values for fossil fuel action: [{selected_action}]") 
     plt.show()
 
 

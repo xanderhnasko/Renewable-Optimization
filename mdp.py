@@ -26,7 +26,7 @@ def wind_speed_transition(current_wind_speed, mu_w, sigma_w, alpha=0.1, t=1):
 def energy_demand_transition(current_demand, mu_d, sigma_d, alpha=0.1, t=1):
     lambda_ = np.exp(-alpha * t)
     mu_d_prime = lambda_ * current_demand + (1 - lambda_) * mu_d
-    return max(np.random.normal(mu_d_prime, sigma_d), 0)
+    return max(np.random.normal(mu_d_prime, sigma_d), 0.1)
 
 # TBU Fix this, JLEE - where do we use this? is it necessary?
 def simulate_initial_wind_speed(n, mu_w=7.58, sigma_w=1.02):
@@ -80,9 +80,9 @@ def calculate_reward(state, action):
 def descritize_state(state):
     phi, wind_speed, demand = state
     wind_bin = wind_speed//1
-    bins = np.linspace(0, 20, 2)
-    demand_bin = np.digitize(demand, bins)  
-    return (phi, wind_bin, demand_bin)   
+    #bins = np.linspace(0, 4, 1)
+    bins = [-np.inf, 3.4, 3.8, 4.2, 4.6, np.inf]
+    return (phi, wind_bin, np.digitize(demand, bins))   
 
 # Using epsilon greedy policy exploration to balance exploration and exploitation so agent doesn't get stuck in sub-optimal action plans
 def e_greedy_policy(Q, state, epsilon):
@@ -116,21 +116,26 @@ def q_learning(df, Q, num_episodes, step_horizon, mu_d, sigma_d, alpha, gamma, e
             Q[state][action] += alpha * (reward + gamma * Q[new_state][best_next_action] - Q[state][action])
 
  
-            x.append(step)  
-            y.append(state[0])  
+            # x.append(step)  
+            # y.append(state[0])  
             state = new_state
             if step % 99 == 0:
                 print(f"Episode: {episode}/{num_episodes}, Step: {step}/{step_horizon}, State: {state}, Action: {action}, Reward: {reward}")
-        #plt.plot(x, y, color = 'blue', alpha = 0.01)
+        
+        
+        # plt.plot(x, y, color = 'blue', alpha = 0.05)
         
         if episode % 1000 == 0:
             print(f"Episode: {episode}/{num_episodes}, Step: {step}/{step_horizon}, State: {state}, Action: {action}, Reward: {reward}")
 
-    #sns.kdeplot(x = x_data, y = y_data, cmap = "Blues", fill = True)    
-    # plt.xlabel("Step")  
+
     # plt.ylabel("Proportion of Energy Met by Fossil Fuels")
+    # plt.xticks([])
+    # plt.xlabel("Step")
+    # plt.title("Agent Exploration Over Time")
     # plt.show()
     return Q
+   
 
 def main():
     # Load data
@@ -152,10 +157,10 @@ def main():
 
     # NEEDS TO BE UPDATED:
     # Luis/Jlee, ideally we start at 100% Fossil Fuels and work down until we reach the optimal balance
-    df['phi'] = 0.9  # Example: 50% of energy demand initially met by fossil fuels
-    mu_d = 4
-    sigma_d = 0.1
-    df['demand'] =  4 
+    df['phi'] = 0.5  # Example: 50% of energy demand initially met by fossil fuels
+    mu_d = 4.6
+    sigma_d = 0.5
+    df['demand'] =  4.6
 
     # constructing state space
     df['state'] = df.apply(lambda row: (row['phi'], row['wind_speed'], row['demand']), axis=1)
@@ -173,18 +178,16 @@ def main():
     alpha = 0.1  # Learning rate
     gamma = 0.9  # Discount factor
     epsilon = 0.3 # Exploration probability
-    episodes = 100 # Number of episodes
+    episodes = 10000 # Number of episodes
     step_horizon = 1000  # Number of steps per episode
 
     
     Q = q_learning(df, Q, episodes, step_horizon=step_horizon, mu_d=mu_d, sigma_d=sigma_d, alpha=alpha, gamma=gamma, epsilon=epsilon) 
     optimal_policy = {state: max(actions, key = actions.get) for state, actions in Q.items()}   
-    print(optimal_policy) 
-    Q_heatmap(Q)  
-    #phi_vs_ws_heatmap(optimal_policy)    
-    #ws_vs_d_heatmap(optimal_policy)
+    print(optimal_policy)
+    #Q_heatmap(Q)  
+    phi_vs_ws_heatmap(optimal_policy)    
     #parallel_axes(optimal_policy)
-    print(df["capacity_factor"].mean()) 
 
 if __name__ == "__main__":
     main()
