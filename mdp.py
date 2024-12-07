@@ -158,9 +158,9 @@ def main():
     # NEEDS TO BE UPDATED:
     # Luis/Jlee, ideally we start at 100% Fossil Fuels and work down until we reach the optimal balance
     df['phi'] = 0.5  # Example: 50% of energy demand initially met by fossil fuels
-    mu_d = 4.6
-    sigma_d = 0.5
-    df['demand'] =  4.6
+    mu_d = 3.87
+    sigma_d = 0.2
+    df['demand'] =  3.87
 
     # constructing state space
     df['state'] = df.apply(lambda row: (row['phi'], row['wind_speed'], row['demand']), axis=1)
@@ -178,16 +178,17 @@ def main():
     alpha = 0.1  # Learning rate
     gamma = 0.9  # Discount factor
     epsilon = 0.3 # Exploration probability
-    episodes = 10000 # Number of episodes
+    episodes = 100 # Number of episodes
     step_horizon = 1000  # Number of steps per episode
 
     
     Q = q_learning(df, Q, episodes, step_horizon=step_horizon, mu_d=mu_d, sigma_d=sigma_d, alpha=alpha, gamma=gamma, epsilon=epsilon) 
     optimal_policy = {state: max(actions, key = actions.get) for state, actions in Q.items()}   
-    print(optimal_policy)
-    #Q_heatmap(Q)  
-    phi_vs_ws_heatmap(optimal_policy)    
+    #print(optimal_policy)
+    Q_heatmap(Q)  
+    #phi_vs_ws_heatmap(optimal_policy)    
     #parallel_axes(optimal_policy)
+    print(df)
 
 if __name__ == "__main__":
     main()
