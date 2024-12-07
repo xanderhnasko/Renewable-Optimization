@@ -9,10 +9,10 @@ def get_data(filepath="data.pkl"):
     return pd.read_pickle(filepath)
 
 
-def calculate_power_output(wind_speed, cp = CP, rho=1.225, R=130.5):
+def calculate_power_output(wind_speed, cp = CP, rho=1.225, R=133.8):
     # Cp: Average Coefficient of Performance across all wind turbines
     # rho: U.S Average wind density
-    # R: Average Rotor Radius of modern tubines (2023+)
+    # R: Average Rotor Size of modern tubines (2023+)
     return round((0.5 * cp * rho * np.pi * R**2 * wind_speed**3)/1e6, 3)
 
 
@@ -59,7 +59,7 @@ def full_transition(state, action, mu_w, sigma_w, mu_d, sigma_d, alpha=0.1, t=1)
     # Return new state
     return (new_phi, new_wind_speed, new_demand)  
 
-# REWARD FUNCTION, NEED TO FIX
+# REWARD FUNCTION
 def calculate_reward(state, action):
     phi, wind_speed, demand = state[0], state[1], state[2]
     power_output = calculate_power_output(wind_speed)   
@@ -80,8 +80,8 @@ def calculate_reward(state, action):
 def descritize_state(state):
     phi, wind_speed, demand = state
     wind_bin = wind_speed//1
-    #bins = np.linspace(0, 4, 1)
-    bins = [-np.inf, 3.4, 3.8, 4.2, 4.6, np.inf]
+    bins = np.linspace(0, 4, 1)
+    #bins = [3.4, 3.8, 4.2, 4.6, np.inf]
     return (phi, wind_bin, np.digitize(demand, bins))   
 
 # Using epsilon greedy policy exploration to balance exploration and exploitation so agent doesn't get stuck in sub-optimal action plans
@@ -153,10 +153,6 @@ def main():
     df['power_output'] = df['wind_speed'].apply(calculate_power_output)
     
 
-
-
-    # NEEDS TO BE UPDATED:
-    # Luis/Jlee, ideally we start at 100% Fossil Fuels and work down until we reach the optimal balance
     df['phi'] = 0.5  # Example: 50% of energy demand initially met by fossil fuels
     mu_d = 3.87
     sigma_d = 0.2
@@ -184,7 +180,7 @@ def main():
     
     Q = q_learning(df, Q, episodes, step_horizon=step_horizon, mu_d=mu_d, sigma_d=sigma_d, alpha=alpha, gamma=gamma, epsilon=epsilon) 
     optimal_policy = {state: max(actions, key = actions.get) for state, actions in Q.items()}   
-    #print(optimal_policy)
+    print(optimal_policy)
     Q_heatmap(Q)  
     #phi_vs_ws_heatmap(optimal_policy)    
     #parallel_axes(optimal_policy)
