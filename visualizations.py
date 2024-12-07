@@ -32,7 +32,7 @@ def phi_vs_ws_heatmap(policy_matrix):
     plt.show()
 
 def Q_heatmap(Q):
-    selected_action = "increase"
+    selected_action = "no_change"
 
     data =[]
     for (phi, ws, d) in Q.keys():
@@ -52,7 +52,7 @@ def Q_heatmap(Q):
         j = wind_speed_index[ws]
         Q_matrix[i, j] = q_val
     
-    sns.heatmap(Q_matrix, xticklabels=wind_speeds, yticklabels=phis, vmax = 100, vmin = -50, cmap = "coolwarm_r", cbar_kws={'label': 'Q-value'})   
+    sns.heatmap(Q_matrix, xticklabels=wind_speeds, yticklabels=phis, vmax = 20, vmin = -400, cmap = "coolwarm_r", cbar_kws={'label': 'Q-value'})   
     plt.xlabel("Wind Speed")    
     plt.ylabel("Proportion of Energy Met by Fossil Fuels")  
     plt.title(f"Q-values for fossil fuel action: [{selected_action}]") 

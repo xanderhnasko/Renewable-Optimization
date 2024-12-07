@@ -9,10 +9,10 @@ def get_data(filepath="data.pkl"):
     return pd.read_pickle(filepath)
 
 
-def calculate_power_output(wind_speed, cp = CP, rho=1.225, R=133.8):
+def calculate_power_output(wind_speed, cp = CP, rho=1.225, R=66.9):
     # Cp: Average Coefficient of Performance across all wind turbines
     # rho: U.S Average wind density
-    # R: Average Rotor Size of modern tubines (2023+)
+    # R: Average Rotor Radius of modern tubines (2023+)
     return round((0.5 * cp * rho * np.pi * R**2 * wind_speed**3)/1e6, 3)
 
 
