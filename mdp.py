@@ -27,11 +27,6 @@ def energy_demand_transition(current_demand, mu_d, sigma_d, alpha=0.1, t=1):
     lambda_ = np.exp(-alpha * t)
     mu_d_prime = lambda_ * current_demand + (1 - lambda_) * mu_d
     return max(np.random.normal(mu_d_prime, sigma_d), 0.1)
-
-# TBU Fix this, JLEE - where do we use this? is it necessary?
-def simulate_initial_wind_speed(n, mu_w=7.58, sigma_w=1.02):
-    # mu_w and sigma_w derived from overall dataset statistics
-    return np.random.normal(mu_w, sigma_w, n)
                   
 # ACTION FUNCTIONS
 
@@ -155,7 +150,7 @@ def main():
 
     df['phi'] = 0.5  # Example: 50% of energy demand initially met by fossil fuels
     mu_d = 3.87
-    sigma_d = 0.2
+    sigma_d = 0.5
     df['demand'] =  3.87
 
     # constructing state space
@@ -174,7 +169,7 @@ def main():
     alpha = 0.1  # Learning rate
     gamma = 0.9  # Discount factor
     epsilon = 0.3 # Exploration probability
-    episodes = 100 # Number of episodes
+    episodes = 10000 # Number of episodes
     step_horizon = 1000  # Number of steps per episode
 
     
